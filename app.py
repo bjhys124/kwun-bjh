@@ -1,9 +1,9 @@
 import streamlit as st
-import openai
 from file_parser import parse_text_to_dataframe, parse_csv_to_dataframe
 from tax_calculator import calculate_tax
 from warning_generator import generate_warnings
 from gpt_feedback import get_gpt_feedback
+import openai
 import os
 
 # 환경 변수 로드
