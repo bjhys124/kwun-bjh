@@ -1,5 +1,3 @@
-# ledger_summary_bot.py
-
 import pandas as pd
 import openai
 import os
