@@ -22,6 +22,10 @@ def parse_text_to_dataframe(uploaded_file):
             data.append({"날짜": date, "내용": desc, "금액": int(amount), "분류": category})
     return pd.DataFrame(data)
 
+# CSV 파일 파싱 함수
+def parse_csv_to_dataframe(uploaded_file):
+    return pd.read_csv(uploaded_file)
+
 # 요약 함수
 def summarize_ledger(df):
     summary = df.groupby("분류")["금액"].sum().reset_index()
@@ -55,93 +59,17 @@ def classify_category_with_gpt(category_name):
     )
     return response.choices[0].message.content.strip()
 
-# GPT 기반 즉석 계정과목 생성 매핑
-def generate_dynamic_categories(df):
-    unique_categories = df['분류'].unique().tolist()
-    category_list_str = "\n".join(unique_categories)
-
-    prompt = f"""
-    다음은 사용자가 입력한 실제 분류명 리스트야. 이 항목들을 기반으로 회계 관점에서 실무적으로 적절한 계정과목명을 제안해줘. 분류명과 추천 계정과목명을 한 줄씩 나란히 적어줘.
-
-    입력 분류:
-    {category_list_str}
-
-    형식:
-    분류명 -> 추천 계정과목명
-    """
-
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "너는 세무사이자 회계사야. 분류명을 보고 가장 적절한 계정과목명을 추천해줘."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.4
-    )
-    return response.choices[0].message.content.strip()
-
-# 업종별 기준 포함한 경고 생성 함수
+# 경고 생성 함수
 def generate_warnings(df):
     warnings = []
     monthly_income = df[df['분류'] == '매출']['금액'].sum()
-    
     if monthly_income == 0:
         warnings.append("⚠ 매출 정보가 없습니다. 매출 데이터를 반드시 입력해주세요.")
     
     expenses = df[df['분류'] != '매출'].groupby('분류')['금액'].sum()
 
-    dynamic_mapping_text = generate_dynamic_categories(df)
-    category_mapping = {}
-    
-    for line in dynamic_mapping_text.splitlines():
-        if '->' in line:
-            original, mapped = line.split('->')
-            category_mapping[original.strip()] = mapped.strip()
-
-    thresholds_by_category = {}
-    threshold_prompt = f"""
-    다음은 자영업자의 회계 장부에서 사용된 계정과목 리스트야. 각 항목이 전체 매출에서 차지하는 **수익성 확보를 위한 권장 최대 비율(%)**을 제시해줘. 
-    이 기준을 초과하면 **과도한 지출로 인한 이익 감소 또는 향후 적자 위험이 예상되는 경계선**이야.
-
-    업종별로 현실적인 범위 내에서 **조기 예방 목적**으로 약간 타이트하게 설정해줘.
-
-    형식은 아래처럼:
-    계정과목 -> 기준 비율(%)
-    예시: 인건비 -> 25%
-
-    계정과목 리스트:
-    {', '.join(set(category_mapping.values()))}
-    """
-
-    threshold_response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "너는 세무회계 기준에 밝은 전문가야. 실무적으로 적절한 매출 대비 지출 기준 비율을 제안해줘."},
-            {"role": "user", "content": threshold_prompt}
-        ],
-        temperature=0.4
-    )
-    threshold_text = threshold_response.choices[0].message.content.strip()
-
-    for line in threshold_text.splitlines():
-        if '->' in line:
-            name, percent = line.split('->')
-            try:
-                thresholds_by_category[name.strip()] = float(percent.strip().replace('%', '')) / 100
-            except:
-                continue
-
-    for category in expenses.index:
-        expense_amount = expenses[category]
-        gpt_class = category_mapping.get(category, classify_category_with_gpt(category))
-        ratio = expense_amount / monthly_income
-
-        if gpt_class in thresholds_by_category:
-            threshold = thresholds_by_category[gpt_class]
-            if ratio > threshold:
-                warnings.append(f"⚠ '{category}' 지출이 매출 대비 {ratio:.1%}입니다. (추천 계정과목: {gpt_class}, 기준: {threshold:.0%})")
-        elif gpt_class == '경조사비' and expense_amount > 200000:
-            warnings.append(f"⚠ {category} 항목이 건당 20만원을 초과했습니다.")
+    if len(expenses) == 0:
+        warnings.append("⚠ 지출 항목이 없습니다. 지출 데이터를 입력해주세요.")
 
     return warnings
 
@@ -175,7 +103,7 @@ question = st.text_input("세무 관련 질문을 입력하세요 (예: 이번 �
 
 if uploaded_file:
     if uploaded_file.type == "text/csv":
-        df = pd.read_csv(uploaded_file)
+        df = parse_csv_to_dataframe(uploaded_file)
     else:
         df = parse_text_to_dataframe(uploaded_file)
 
