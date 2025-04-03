@@ -224,4 +224,4 @@ if question:
     )
 
     st.subheader("💬 질문에 대한 답변")
-    st.write(followup_response.choices[0].message.content.strip()
+    st.write(followup_response.choices[0].message.content.strip()))
