@@ -171,6 +171,7 @@ def save_summary_to_pdf(summary, vat, income_tax, feedback):
 st.title("🧾 세무 GPT 챗봇 + 자동 경고 + 세금 계산 + 리포트 저장")
 
 uploaded_file = st.file_uploader("장부 파일을 업로드하세요 (.txt)", type="txt")
+question = st.text_input("세무 관련 질문을 입력하세요 (예: 이번 달 지출은 적절한가요?)")
 if uploaded_file:
     df = parse_text_to_dataframe(uploaded_file)
     st.subheader("📋 원본 장부 데이터")
@@ -208,7 +209,22 @@ if uploaded_file:
     st.write(f"💰 예상 종합소득세: 약 {income_tax:,}원")
 
     st.subheader("🧠 GPT 세무사 피드백")
-    st.write(gpt_feedback)
+st.write(gpt_feedback)
+
+if question:
+    user_question_prompt = gpt_summary_prompt + f"
+
+사용자 질문: {question}"
+    followup_response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "너는 전문 세무사 AI야. 아래 사용자의 질문에 장부 기반으로 정확히 답해줘."},
+            {"role": "user", "content": user_question_prompt}
+        ],
+        temperature=0.5
+    )
+    st.subheader("💬 질문에 대한 답변")
+    st.write(followup_response.choices[0].message.content.strip())
 
     # PDF 저장 버튼
     if st.button("📄 PDF 리포트 저장"):
