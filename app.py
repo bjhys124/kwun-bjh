@@ -86,7 +86,7 @@ def generate_warnings(df):
     monthly_income = df[df['분류'] == '매출']['금액'].sum()
     
     if monthly_income == 0:
-        return ["⚠ 매출 정보가 없습니다. 매출 데이터를 반드시 입력해주세요."]
+        warnings.append("⚠ 매출 정보가 없습니다. 매출 데이터를 반드시 입력해주세요.")
     
     expenses = df[df['분류'] != '매출'].groupby('분류')['금액'].sum()
 
@@ -170,10 +170,15 @@ def save_summary_to_pdf(summary, vat, income_tax, feedback):
 # Streamlit 실행
 st.title("🧾 세무 GPT 챗봇 + 자동 경고 + 세금 계산 + 리포트 저장")
 
-uploaded_file = st.file_uploader("장부 파일을 업로드하세요 (.txt)", type="txt")
+uploaded_file = st.file_uploader("장부 파일을 업로드하세요 (.txt 또는 .csv)", type=["txt", "csv"])
 question = st.text_input("세무 관련 질문을 입력하세요 (예: 이번 달 지출은 적절한가요?)")
+
 if uploaded_file:
-    df = parse_text_to_dataframe(uploaded_file)
+    if uploaded_file.type == "text/csv":
+        df = pd.read_csv(uploaded_file)
+    else:
+        df = parse_text_to_dataframe(uploaded_file)
+
     st.subheader("📋 원본 장부 데이터")
     st.dataframe(df)
 
