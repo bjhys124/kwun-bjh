@@ -28,10 +28,30 @@ def parse_file_to_dataframe(uploaded_file):
         return pd.DataFrame(data)
     
     elif file_type in ['xls', 'xlsx']:
-        df = pd.read_excel(uploaded_file)
+        df = pd.read_excel(uploaded_file, header=None)
+        
+        # 헤더를 자동으로 설정 (만약 첫 번째 행이 헤더가 아니라면)
+        df.columns = ['날짜', '내용', '금액', '분류']  # 여기에 원하는 컬럼명을 설정
         return df
     else:
         raise ValueError("지원하지 않는 파일 형식입니다.")
+
+# 데이터 검증 함수 (자동 형식 맞추기)
+def validate_dataframe(df):
+    # 날짜 형식 변환 (날짜가 잘못된 경우 처리)
+    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce')  # 잘못된 날짜는 NaT (Not a Time)
+    
+    # 금액이 숫자가 아닌 경우 처리
+    df['금액'] = pd.to_numeric(df['금액'], errors='coerce')
+
+    # 잘못된 데이터가 있으면 에러 메시지 출력
+    if df['날짜'].isnull().any():
+        st.warning("날짜 형식이 잘못된 항목이 있습니다.")
+    
+    if df['금액'].isnull().any():
+        st.warning("금액 형식이 잘못된 항목이 있습니다.")
+    
+    return df
 
 # 요약 함수
 def summarize_ledger(df):
@@ -183,6 +203,7 @@ uploaded_file = st.file_uploader("장부 파일을 업로드하세요 (.txt, .xl
 question = st.text_input("세무 관련 질문을 입력하세요 (예: 이번 달 지출은 적절한가요?)")
 if uploaded_file:
     df = parse_file_to_dataframe(uploaded_file)
+    df = validate_dataframe(df)  # 데이터 검증 추가
     st.subheader("📋 원본 장부 데이터")
     st.dataframe(df)
 
@@ -218,7 +239,7 @@ if uploaded_file:
     st.write(f"💰 예상 종합소득세: 약 {income_tax:,}원")
 
     st.subheader("🧠 GPT 세무사 피드백")
-    st.write(gpt_feedback)  # 이 줄을 이제 이 블록 안에 넣음
+    st.write(gpt_feedback)
 
     if question:
         user_question_prompt = gpt_summary_prompt + f"\n\n사용자 질문: {question}"
