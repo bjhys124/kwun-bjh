@@ -1,27 +1,30 @@
 import streamlit as st
+import pandas as pd
+import os
+from io import StringIO
+from dotenv import load_dotenv
+from openai import OpenAI
+from datetime import datetime
+from fpdf import FPDF
 from file_parser import parse_text_to_dataframe, parse_csv_to_dataframe
 from tax_calculator import calculate_tax
 from warning_generator import generate_warnings
 from gpt_feedback import get_gpt_feedback
-import openai
-import os
 
 # 환경 변수 로드
 dotenv_path = ".env"
 if os.path.exists(dotenv_path):
-    from dotenv import load_dotenv
     load_dotenv(dotenv_path)
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Streamlit UI 설정
-st.title("세무 GPT 챗봇 + 자동 경고 + 세금 계산 + 리포트 저장")
+st.title("🧾 세무 GPT 챗봇 + 자동 경고 + 세금 계산 + 리포트 저장")
 
 uploaded_file = st.file_uploader("장부 파일을 업로드하세요 (.txt 또는 .csv)", type=["txt", "csv"])
 question = st.text_input("세무 관련 질문을 입력하세요 (예: 이번 달 지출은 적절한가요?)")
 
 if uploaded_file:
-    # 업로드한 파일에 따라 파싱 함수 호출
     if uploaded_file.type == "text/csv":
         df = parse_csv_to_dataframe(uploaded_file)
     else:
@@ -58,8 +61,7 @@ if uploaded_file:
     if question:
         user_question_prompt = f"사용자 질문: {question}"
 
-        # GPT 응답 생성
-        followup_response = openai.ChatCompletion.create(
+        followup_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "너는 전문 세무사 AI야. 아래 사용자의 질문에 장부 기반으로 정확히 답해줘."},
@@ -69,4 +71,4 @@ if uploaded_file:
         )
 
         st.subheader("💬 질문에 대한 답변")
-        st.write(followup_response['choices'][0]['message']['content'].strip())
+        st.write(followup_response.choices[0].message.content.strip())
