@@ -1,4 +1,3 @@
-# 세금 계산기
 def calculate_tax(df):
     total_income = df[df['분류'] == '매출']['금액'].sum()
     total_expense = df[df['분류'] != '매출']['금액'].sum()
