@@ -135,11 +135,11 @@ def answer_with_feedback(question, df):
 # Streamlit UI
 st.title("🤖 세무사 GPT 챗봇 + 월말 피드백")
 
-# ✅ 질문창은 항상 표시됨
-question = st.text_input("세무 질문을 입력하세요 (예: 이번 달 어땠나요?)")
-
-# ✅ 파일 업로드
+# ✅ 파일 업로드 먼저
 uploaded_file = st.file_uploader(".txt 형식의 장부 파일을 업로드하세요", type="txt")
+
+# ✅ 그 아래 질문창 위치
+question = st.text_input("세무 질문을 입력하세요 (예: 이번 달 어땠나요?)")
 
 if uploaded_file is not None:
     df = parse_text_to_dataframe(uploaded_file)
