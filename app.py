@@ -114,9 +114,6 @@ def answer_with_feedback(question, df):
 
     if last_feedback_month != now_month:
         st.session_state["last_feedback_month"] = now_month
-        include_feedback = True
-    else:
-        include_feedback = False
 
     system_prompt = """
     너는 전문 세무사 AI야. 사용자의 질문에 답변을 주면서, 추가로 이번 달 요약 피드백도 포함해줘.
@@ -138,9 +135,11 @@ def answer_with_feedback(question, df):
 # Streamlit UI
 st.title("🤖 세무사 GPT 챗봇 + 월말 피드백")
 
-uploaded_file = st.file_uploader(".txt 형식의 장부 파일을 업로드하세요", type="txt")
-
+# ✅ 질문창은 항상 표시됨
 question = st.text_input("세무 질문을 입력하세요 (예: 이번 달 어땠나요?)")
+
+# ✅ 파일 업로드
+uploaded_file = st.file_uploader(".txt 형식의 장부 파일을 업로드하세요", type="txt")
 
 if uploaded_file is not None:
     df = parse_text_to_dataframe(uploaded_file)
