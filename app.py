@@ -14,15 +14,24 @@ if os.path.exists(dotenv_path):
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# 텍스트 파일 파싱 함수
-def parse_text_to_dataframe(uploaded_file):
-    data = []
-    for line in uploaded_file.getvalue().decode("utf-8").splitlines():
-        parts = [x.strip() for x in line.strip().split("|")]
-        if len(parts) == 4:
-            date, desc, amount, category = parts
-            data.append({"날짜": date, "내용": desc, "금액": int(amount), "분류": category})
-    return pd.DataFrame(data)
+# 텍스트 파일 파싱 함수 (엑셀 파일도 추가)
+def parse_file_to_dataframe(uploaded_file):
+    file_type = uploaded_file.name.split('.')[-1].lower()
+
+    if file_type == 'txt':
+        data = []
+        for line in uploaded_file.getvalue().decode("utf-8").splitlines():
+            parts = [x.strip() for x in line.strip().split("|")]
+            if len(parts) == 4:
+                date, desc, amount, category = parts
+                data.append({"날짜": date, "내용": desc, "금액": int(amount), "분류": category})
+        return pd.DataFrame(data)
+    
+    elif file_type in ['xls', 'xlsx']:
+        df = pd.read_excel(uploaded_file)
+        return df
+    else:
+        raise ValueError("지원하지 않는 파일 형식입니다.")
 
 # 요약 함수
 def summarize_ledger(df):
@@ -170,10 +179,10 @@ def save_summary_to_pdf(summary, vat, income_tax, feedback):
 # Streamlit 실행
 st.title("🧾 세무 GPT 챗봇 + 자동 경고 + 세금 계산 + 리포트 저장")
 
-uploaded_file = st.file_uploader("장부 파일을 업로드하세요 (.txt)", type="txt")
+uploaded_file = st.file_uploader("장부 파일을 업로드하세요 (.txt, .xls, .xlsx)", type=["txt", "xls", "xlsx"])
 question = st.text_input("세무 관련 질문을 입력하세요 (예: 이번 달 지출은 적절한가요?)")
 if uploaded_file:
-    df = parse_text_to_dataframe(uploaded_file)
+    df = parse_file_to_dataframe(uploaded_file)
     st.subheader("📋 원본 장부 데이터")
     st.dataframe(df)
 
