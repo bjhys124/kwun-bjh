@@ -212,7 +212,8 @@ if uploaded_file:
 st.write(gpt_feedback)
 
 if question:
-    user_question_prompt = gpt_summary_prompt + f"
+    user_question_prompt = gpt_summary_prompt + f"\n\n사용자 질문: {question}"
+
 
 사용자 질문: {question}"
 
