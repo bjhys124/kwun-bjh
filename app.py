@@ -214,9 +214,6 @@ st.write(gpt_feedback)
 if question:
     user_question_prompt = gpt_summary_prompt + f"\n\n사용자 질문: {question}"
 
-
-사용자 질문: {question}"
-
     followup_response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
@@ -225,5 +222,6 @@ if question:
         ],
         temperature=0.5
     )
+
     st.subheader("💬 질문에 대한 답변")
-    st.write(followup_response.choices[0].message.content.strip())
+    st.write(followup_response.choices[0].message.content.strip()
