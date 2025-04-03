@@ -211,8 +211,17 @@ if uploaded_file:
     st.subheader("🧠 GPT 세무사 피드백")
     st.write(gpt_feedback)  # 이 줄을 이제 이 블록 안에 넣음
 
+    if question:
+        user_question_prompt = gpt_summary_prompt + f"\n\n사용자 질문: {question}"
 
+        followup_response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "너는 전문 세무사 AI야. 아래 사용자의 질문에 장부 기반으로 정확히 답해줘."},
+                {"role": "user", "content": user_question_prompt}
+            ],
+            temperature=0.5
+        )
 
-
-
-
+        st.subheader("💬 질문에 대한 답변")
+        st.write(followup_response.choices[0].message.content.strip())
