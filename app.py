@@ -4,6 +4,7 @@ import os
 from io import StringIO
 from dotenv import load_dotenv
 from openai import OpenAI
+from datetime import datetime
 
 # 환경 변수 로드
 dotenv_path = ".env"
@@ -89,28 +90,53 @@ def calculate_monthly_avg_income(df):
     months = df['날짜'].apply(lambda x: x[:7]).nunique()
     return total_income // months if months else 0
 
-# 최신 OpenAI GPT 호출 방식으로 절세 피드백 생성
-def explain_ledger_summary(summary_df, vat, income_tax, monthly_avg_income):
-    content = "다음은 자영업자의 월별 지출 요약입니다:\n"
-    for _, row in summary_df.iterrows():
-        content += f"- {row['항목']}: {int(row['총액'])}원\n"
+# GPT 호출 함수 (질문 + 월말 피드백 포함)
+def answer_with_feedback(question, df):
+    now_month = datetime.now().strftime("%Y-%m")
+    last_feedback_month = st.session_state.get("last_feedback_month")
 
+    summary = summarize_ledger(df)
+    vat, income_tax = calculate_tax(df)
+    monthly_avg_income = calculate_monthly_avg_income(df)
+    warnings = generate_warnings(df)
+
+    content = f"사용자 질문: {question}\n\n"
+    content += "이번 달(자동 감지) 장부 분석 결과입니다:\n"
+    for _, row in summary.iterrows():
+        content += f"- {row['항목']}: {int(row['총액'])}원\n"
     content += f"\n월 평균 매출액: 약 {monthly_avg_income:,}원\n"
     content += f"예상 부가세: 약 {vat:,}원\n"
-    content += f"예상 종합소득세: 약 {income_tax:,}원"
+    content += f"예상 종합소득세: 약 {income_tax:,}원\n"
+    if warnings:
+        content += "\n경고 항목:\n"
+        for w in warnings:
+            content += f"- {w}\n"
+
+    if last_feedback_month != now_month:
+        st.session_state["last_feedback_month"] = now_month
+        include_feedback = True
+    else:
+        include_feedback = False
+
+    system_prompt = """
+    너는 전문 세무사 AI야. 사용자의 질문에 답변을 주면서, 추가로 이번 달 요약 피드백도 포함해줘.
+    단, 월말 피드백은 한 달에 한 번만 포함하고, 이후 질문에는 생략해도 돼.
+    """
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": content}
+    ]
 
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "너는 전문 세무사 수준의 AI 컨설턴트야."},
-            {"role": "user", "content": content}
-        ],
+        messages=messages,
         temperature=0.5
     )
     return response.choices[0].message.content
 
 # Streamlit UI
-st.title("📊 세무사 챗봇: 자영업자 장부 분석기")
+st.title("🤖 세무사 GPT 챗봇 + 월말 피드백")
 
 uploaded_file = st.file_uploader(".txt 형식의 장부 파일을 업로드하세요", type="txt")
 
@@ -119,27 +145,9 @@ if uploaded_file is not None:
     st.subheader("📋 원본 장부 데이터")
     st.dataframe(df)
 
-    summary = summarize_ledger(df)
-    vat, income_tax = calculate_tax(df)
-    monthly_avg_income = calculate_monthly_avg_income(df)
-    warnings = generate_warnings(df)
-
-    st.subheader("📌 분류별 지출 요약")
-    st.dataframe(summary)
-
-    st.subheader("💸 예상 세금")
-    st.write(f"- 부가가치세(VAT): **{vat:,}원**")
-    st.write(f"- 종합소득세: **{income_tax:,}원**")
-    st.write(f"- 월 평균 매출: **{monthly_avg_income:,}원**")
-
-    if warnings:
-        st.subheader("🚨 자동 경고 메시지")
-        for warning in warnings:
-            st.warning(warning)
-    else:
-        st.success("경고 사항 없음. 건전한 지출 구조입니다!")
-
-    st.subheader("🤖 GPT 분석 & 절세 피드백")
-    with st.spinner("GPT 피드백 생성 중..."):
-        explanation = explain_ledger_summary(summary, vat, income_tax, monthly_avg_income)
-        st.write(explanation)
+    question = st.text_input("세무 질문을 입력하세요 (예: 이번 달 어땠나요?)")
+    if question:
+        with st.spinner("AI 세무사 답변 생성 중..."):
+            answer = answer_with_feedback(question, df)
+            st.subheader("🤖 챗봇 응답")
+            st.write(answer)
