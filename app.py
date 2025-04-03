@@ -215,6 +215,7 @@ if question:
     user_question_prompt = gpt_summary_prompt + f"
 
 사용자 질문: {question}"
+
     followup_response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
@@ -225,9 +226,3 @@ if question:
     )
     st.subheader("💬 질문에 대한 답변")
     st.write(followup_response.choices[0].message.content.strip())
-
-    # PDF 저장 버튼
-    if st.button("📄 PDF 리포트 저장"):
-        filepath = save_summary_to_pdf(summary, vat, income_tax, gpt_feedback)
-        with open(filepath, "rb") as f:
-            st.download_button(label="📥 리포트 다운로드", data=f, file_name=filepath, mime="application/pdf")
