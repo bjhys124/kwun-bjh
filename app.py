@@ -210,3 +210,9 @@ if uploaded_file:
 
     st.subheader("🧠 GPT 세무사 피드백")
     st.write(gpt_feedback)  # 이 줄을 이제 이 블록 안에 넣음
+
+
+
+
+
+
