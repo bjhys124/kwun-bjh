@@ -216,14 +216,14 @@ if uploaded_file:
 
 사용자 질문: {question}"
 
-    followup_response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "너는 전문 세무사 AI야. 아래 사용자의 질문에 장부 기반으로 정확히 답해줘."},
-            {"role": "user", "content": user_question_prompt}
-        ],
-        temperature=0.5
-    )
+        followup_response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "너는 전문 세무사 AI야. 아래 사용자의 질문에 장부 기반으로 정확히 답해줘."},
+                {"role": "user", "content": user_question_prompt}
+            ],
+            temperature=0.5
+        )
 
-    st.subheader("💬 질문에 대한 답변")
-    st.write(followup_response.choices[0].message.content.strip())
+        st.subheader("💬 질문에 대한 답변")
+        st.write(followup_response.choices[0].message.content.strip())
