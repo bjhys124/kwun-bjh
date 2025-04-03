@@ -130,6 +130,7 @@ if uploaded_file:
             temperature=0.5
         ).choices[0].message.content.strip()
 
+    # 경고 메시지 출력
     if warnings:
         st.subheader("⚠ 자동 경고 메시지")
         for w in warnings:
@@ -137,13 +138,16 @@ if uploaded_file:
     else:
         st.success("✅ 위험 경고는 없습니다! 지출이 적절해요.")
 
+    # 세금 계산 결과 출력
     st.subheader("📊 세금 요약")
     st.write(f"📌 예상 부가세: 약 {vat:,}원")
     st.write(f"💰 예상 종합소득세: 약 {income_tax:,}원")
 
+    # GPT 피드백 출력
     st.subheader("🧠 GPT 세무사 피드백")
-    st.write(gpt_feedback)  # 이 줄을 이제 이 블록 안에 넣음
+    st.write(gpt_feedback)
 
+    # 세무 관련 질문 응답 처리
     if question:
         user_question_prompt = gpt_summary_prompt + f"\n\n사용자 질문: {question}"
 
