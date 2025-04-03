@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import os
-from io import StringIO
 from dotenv import load_dotenv
 from openai import OpenAI
 from datetime import datetime
@@ -29,8 +28,6 @@ def parse_file_to_dataframe(uploaded_file):
     
     elif file_type in ['xls', 'xlsx']:
         df = pd.read_excel(uploaded_file, header=None)
-        
-        # 헤더를 자동으로 설정 (만약 첫 번째 행이 헤더가 아니라면)
         df.columns = ['날짜', '내용', '금액', '분류']  # 여기에 원하는 컬럼명을 설정
         return df
     else:
@@ -201,57 +198,27 @@ st.title("🧾 세무 GPT 챗봇 + 자동 경고 + 세금 계산 + 리포트 저
 
 uploaded_file = st.file_uploader("장부 파일을 업로드하세요 (.txt, .xls, .xlsx)", type=["txt", "xls", "xlsx"])
 question = st.text_input("세무 관련 질문을 입력하세요 (예: 이번 달 지출은 적절한가요?)")
+
+# 파일 없이 질문만 있는 경우에도 처리
 if uploaded_file:
     df = parse_file_to_dataframe(uploaded_file)
     df = validate_dataframe(df)  # 데이터 검증 추가
     st.subheader("📋 원본 장부 데이터")
     st.dataframe(df)
 
-    with st.spinner("📡 GPT 분석 중..."):
-        warnings = generate_warnings(df)
-        summary = summarize_ledger(df)
-        vat, income_tax = calculate_tax(df)
+if question:
+    # 질문만 있을 경우 처리
+    gpt_summary_prompt = f"사용자의 질문: {question}"
 
-        gpt_summary_prompt = "다음은 자영업자의 장부 요약입니다:\n"
-        for _, row in summary.iterrows():
-            gpt_summary_prompt += f"- {row['항목']}: {int(row['총액']):,}원\n"
-        gpt_summary_prompt += f"\n예상 부가세: 약 {vat:,}원\n"
-        gpt_summary_prompt += f"예상 종합소득세: 약 {income_tax:,}원"
+    followup_response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "너는 전문 세무사 AI야. 아래 사용자의 질문에 장부 기반으로 정확히 답해줘."},
+            {"role": "user", "content": gpt_summary_prompt}
+        ],
+        temperature=0.5
+    )
 
-        gpt_feedback = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "너는 전문 세무사 AI야. 지출 요약과 예상 세금 결과를 바탕으로 개선 방향과 리스크를 알려줘."},
-                {"role": "user", "content": gpt_summary_prompt}
-            ],
-            temperature=0.5
-        ).choices[0].message.content.strip()
+    st.subheader("💬 질문에 대한 답변")
+    st.write(followup_response.choices[0].message.content.strip())
 
-    if warnings:
-        st.subheader("⚠ 자동 경고 메시지")
-        for w in warnings:
-            st.write(w)
-    else:
-        st.success("✅ 위험 경고는 없습니다! 지출이 적절해요.")
-
-    st.subheader("📊 세금 요약")
-    st.write(f"📌 예상 부가세: 약 {vat:,}원")
-    st.write(f"💰 예상 종합소득세: 약 {income_tax:,}원")
-
-    st.subheader("🧠 GPT 세무사 피드백")
-    st.write(gpt_feedback)
-
-    if question:
-        user_question_prompt = gpt_summary_prompt + f"\n\n사용자 질문: {question}"
-
-        followup_response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "너는 전문 세무사 AI야. 아래 사용자의 질문에 장부 기반으로 정확히 답해줘."},
-                {"role": "user", "content": user_question_prompt}
-            ],
-            temperature=0.5
-        )
-
-        st.subheader("💬 질문에 대한 답변")
-        st.write(followup_response.choices[0].message.content.strip())
