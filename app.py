@@ -101,7 +101,6 @@ def generate_warnings(df):
 
     # 업종별 기준
     thresholds_by_category = {}
-    # GPT에게 추천 계정과목별 적절한 매출 대비 비율 기준을 추론하게 요청
     threshold_prompt = f"""
     다음은 자영업자의 회계 장부에서 사용된 계정과목 리스트야. 각 항목이 전체 매출에서 차지하는 **수익성 확보를 위한 권장 최대 비율(%)**을 제시해줘. 
     이 기준을 초과하면 **과도한 지출로 인한 이익 감소 또는 향후 적자 위험이 예상되는 경계선**이야.
@@ -142,8 +141,29 @@ def generate_warnings(df):
         if gpt_class in thresholds_by_category:
             threshold = thresholds_by_category[gpt_class]
             if ratio > threshold:
-                warnings.append(f"⚠ '{category}' 지출이 매출 대비 {ratio:.1%}입니다. (추천 계정과목: {gpt_class}, 기준: {threshold:.0%})")")
+                warnings.append(f"⚠ '{category}' 지출이 매출 대비 {ratio:.1%}입니다. (추천 계정과목: {gpt_class}, 기준: {threshold:.0%})")
         elif gpt_class == '경조사비' and expense_amount > 200000:
             warnings.append(f"⚠ {category} 항목이 건당 20만원을 초과했습니다.")
 
     return warnings
+
+# Streamlit UI 실행 코드
+st.title("🧾 세무 챗봇 with 자동 경고 시스템")
+
+uploaded_file = st.file_uploader("장부 파일을 업로드하세요 (.txt)", type="txt")
+question = st.text_input("궁금한 점을 입력하세요 (예: 이번 달 지출 괜찮은가요?)")
+
+if uploaded_file:
+    df = parse_text_to_dataframe(uploaded_file)
+    st.subheader("📋 원본 장부 데이터")
+    st.dataframe(df)
+
+    with st.spinner("📡 GPT 분석 중..."):
+        warnings = generate_warnings(df)
+
+    if warnings:
+        st.subheader("⚠ 자동 경고 메시지")
+        for w in warnings:
+            st.write(w)
+    else:
+        st.success("✅ 위험 경고는 없습니다! 지출이 적절해요.")
