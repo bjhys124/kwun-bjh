@@ -1,45 +1,39 @@
 import openai
 import os
+from dotenv import load_dotenv
 
-# 환경 변수에서 API 키 불러오기
+# 환경 변수 로드
 dotenv_path = ".env"
 if os.path.exists(dotenv_path):
-    from dotenv import load_dotenv
     load_dotenv(dotenv_path)
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# GPT를 이용한 분류 처리 함수
+# GPT 기반 분류 해석 함수
 def classify_using_gpt(data_list):
-    prompt = "다음은 자영업자의 장부 데이터입니다. 각 항목에 대해 적절한 회계 분류를 제시해주세요. '금액'에 대한 정보를 통해 분류를 예측해주세요.\n\n"
+    prompt = ""
     for entry in data_list:
         prompt += f"날짜: {entry['날짜']}, 내용: {entry['내용']}, 금액: {entry['금액']}\n"
 
-    prompt += "\n위 데이터를 기반으로 각 항목에 대한 적절한 분류를 제시해주세요."
-
-    # GPT 호출 변경된 방식
-    response = openai.Completion.create(
+    # GPT 호출
+    response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",  # 최신 모델 사용
-        prompt=prompt,
+        messages=[{"role": "user", "content": prompt}],
         temperature=0.5,
         max_tokens=150
     )
-    return response.choices[0].text.strip()
+    
+    return response.choices[0].message['content'].strip()
 
-# 텍스트 파일 파싱 및 GPT로 분류 요청
+# 텍스트 파일을 파싱하고 GPT를 이용하여 분류하는 함수
 def parse_text_to_dataframe(uploaded_file):
     data = []
     for line in uploaded_file.getvalue().decode("utf-8").splitlines():
         parts = [x.strip() for x in line.strip().split("|")]
         if len(parts) == 4:
             date, desc, amount, category = parts
-            data.append({"날짜": date, "내용": desc, "금액": amount})
-    
-    # GPT로 자동 분류 요청
+            data.append({"날짜": date, "내용": desc, "금액": int(amount), "분류": category})
+
+    # GPT 분류 사용
     classified_data = classify_using_gpt(data)
-    
-    # 반환된 분류 정보를 데이터에 추가
-    for i, entry in enumerate(data):
-        entry["분류"] = classified_data.splitlines()[i]  # GPT가 반환한 분류값을 추가
-    
-    return pd.DataFrame(data)
+    return classified_data
