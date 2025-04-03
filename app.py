@@ -1,15 +1,16 @@
 import streamlit as st
 import pandas as pd
-import openai
 import os
 from io import StringIO
 from dotenv import load_dotenv
+from openai import OpenAI
 
 # 환경 변수 로드
 dotenv_path = ".env"
 if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # 텍스트 파일 파싱 함수
 def parse_text_to_dataframe(uploaded_file):
@@ -88,7 +89,7 @@ def calculate_monthly_avg_income(df):
     months = df['날짜'].apply(lambda x: x[:7]).nunique()
     return total_income // months if months else 0
 
-# GPT 분석 함수
+# 최신 OpenAI GPT 호출 방식으로 절세 피드백 생성
 def explain_ledger_summary(summary_df, vat, income_tax, monthly_avg_income):
     content = "다음은 자영업자의 월별 지출 요약입니다:\n"
     for _, row in summary_df.iterrows():
@@ -98,17 +99,15 @@ def explain_ledger_summary(summary_df, vat, income_tax, monthly_avg_income):
     content += f"예상 부가세: 약 {vat:,}원\n"
     content += f"예상 종합소득세: 약 {income_tax:,}원"
 
-    messages = [
-        {"role": "system", "content": "너는 전문 세무사 수준의 AI 컨설턴트야."},
-        {"role": "user", "content": content}
-    ]
-
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=messages,
+        messages=[
+            {"role": "system", "content": "너는 전문 세무사 수준의 AI 컨설턴트야."},
+            {"role": "user", "content": content}
+        ],
         temperature=0.5
     )
-    return response['choices'][0]['message']['content']
+    return response.choices[0].message.content
 
 # Streamlit UI
 st.title("📊 세무사 챗봇: 자영업자 장부 분석기")
