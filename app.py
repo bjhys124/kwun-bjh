@@ -209,7 +209,7 @@ if uploaded_file:
     st.write(f"💰 예상 종합소득세: 약 {income_tax:,}원")
 
     st.subheader("🧠 GPT 세무사 피드백")
-st.write(gpt_feedback)
+    st.write(gpt_feedback)
 
 if question:
     user_question_prompt = gpt_summary_prompt + f"\n\n사용자 질문: {question}"
