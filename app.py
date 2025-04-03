@@ -1,10 +1,10 @@
+import streamlit as st
 import pandas as pd
 import os
-from io import StringIO
 from dotenv import load_dotenv
 from openai import OpenAI
-from datetime import datetime
 from fpdf import FPDF
+from datetime import datetime
 
 # 환경 변수 로드
 dotenv_path = ".env"
@@ -33,6 +33,7 @@ def parse_file_to_dataframe(uploaded_file):
     
     elif file_type == 'csv':
         df = pd.read_csv(uploaded_file)
+        # 확인 후 필요시 컬럼명 수정
         if '날짜' not in df.columns or '내용' not in df.columns or '금액' not in df.columns or '분류' not in df.columns:
             df.columns = ['날짜', '내용', '금액', '분류']  # CSV 파일에서 헤더가 다를 수 있으니 여기에 맞춰 컬럼명 설정
         return df
@@ -86,3 +87,4 @@ if question:
 
     st.subheader("💬 질문에 대한 답변")
     st.write(followup_response.choices[0].message.content.strip())
+
