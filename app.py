@@ -39,6 +39,13 @@ def calculate_tax(df):
     income_tax_estimate = income_tax_base * 0.06
     return int(vat_estimate), int(income_tax_estimate)
 
+# 한 달 평균 순수익 계산 함수
+def calculate_monthly_net_profit(df):
+    total_income = df[df['분류'] == '매출']['금액'].sum()  # 매출 합계
+    total_expense = df[df['분류'] != '매출']['금액'].sum()  # 지출 합계
+    monthly_net_profit = total_income - total_expense  # 순수익 = 매출 - 지출
+    return monthly_net_profit
+
 # GPT 기반 분류 해석 함수
 def classify_category_with_gpt(category_name):
     system_msg = """
@@ -185,12 +192,14 @@ if uploaded_file:
         warnings = generate_warnings(df)
         summary = summarize_ledger(df)
         vat, income_tax = calculate_tax(df)
+        monthly_net_profit = calculate_monthly_net_profit(df)  # 순수익 계산
 
         gpt_summary_prompt = "다음은 자영업자의 장부 요약입니다:\n"
         for _, row in summary.iterrows():
             gpt_summary_prompt += f"- {row['항목']}: {int(row['총액']):,}원\n"
         gpt_summary_prompt += f"\n예상 부가세: 약 {vat:,}원\n"
         gpt_summary_prompt += f"예상 종합소득세: 약 {income_tax:,}원"
+        gpt_summary_prompt += f"\n📌 한 달 평균 순수익: 약 {monthly_net_profit:,}원"  # 순수익 추가
 
         gpt_feedback = client.chat.completions.create(
             model="gpt-3.5-turbo",
