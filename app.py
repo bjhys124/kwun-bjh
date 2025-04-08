@@ -91,6 +91,7 @@ def generate_warnings(df):
 
     expenses = df[df['분류'] != '매출'].groupby('분류')['금액'].sum()
 
+    # GPT를 통해 동적으로 생성된 계정과목 매핑
     dynamic_mapping_text = generate_dynamic_categories(df)
     category_mapping = {}
     for line in dynamic_mapping_text.splitlines():
@@ -98,6 +99,7 @@ def generate_warnings(df):
             original, mapped = line.split('->')
             category_mapping[original.strip()] = mapped.strip()
 
+    # 업종별 기준 비율을 GPT로부터 취합하고 판단하는 부분
     thresholds_by_category = {}
     threshold_prompt = f"""
     다음은 자영업자의 회계 장부에서 사용된 계정과목 리스트야. 각 항목이 전체 매출에서 차지하는 **수익성 확보를 위한 권장 최대 비율(%)**을 제시해줘. 
@@ -123,6 +125,7 @@ def generate_warnings(df):
     )
     threshold_text = threshold_response.choices[0].message.content.strip()
 
+    # 비율 데이터를 기준으로 경고 메시지 생성
     for line in threshold_text.splitlines():
         if '->' in line:
             name, percent = line.split('->')
@@ -131,6 +134,7 @@ def generate_warnings(df):
             except:
                 continue
 
+    # 경고 메시지 생성
     for category in expenses.index:
         expense_amount = expenses[category]
         gpt_class = category_mapping.get(category, classify_category_with_gpt(category))
@@ -168,7 +172,7 @@ def save_summary_to_pdf(summary, vat, income_tax, feedback):
     return filepath
 
 # Streamlit 실행
-st.title("🧾 세무 GPT 챗봇 + 자동 경고 + 세금 계산 + 리포트 저장")
+st.title("광운대 22학번 학부연구생 백준현 프로젝트 세무사봇")
 
 uploaded_file = st.file_uploader("장부 파일을 업로드하세요 (.txt)", type="txt")
 question = st.text_input("세무 관련 질문을 입력하세요 (예: 이번 달 지출은 적절한가요?)")
@@ -190,7 +194,7 @@ if uploaded_file:
 
         gpt_feedback = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[
+            messages=[ 
                 {"role": "system", "content": "너는 전문 세무사 AI야. 지출 요약과 예상 세금 결과를 바탕으로 개선 방향과 리스크를 알려줘."},
                 {"role": "user", "content": gpt_summary_prompt}
             ],
@@ -209,7 +213,7 @@ if uploaded_file:
     st.write(f"💰 예상 종합소득세: 약 {income_tax:,}원")
 
     st.subheader("🧠 GPT 세무사 피드백")
-    st.write(gpt_feedback)  # 이 줄을 이제 이 블록 안에 넣음
+    st.write(gpt_feedback)
 
     if question:
         user_question_prompt = gpt_summary_prompt + f"\n\n사용자 질문: {question}"
