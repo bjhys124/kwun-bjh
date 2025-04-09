@@ -5,7 +5,6 @@ from io import StringIO
 from dotenv import load_dotenv
 from openai import OpenAI
 from datetime import datetime
-from fpdf import FPDF
 
 # 환경 변수 로드
 dotenv_path = ".env"
@@ -73,12 +72,6 @@ def calculate_tax_with_adjustments(df, adjusted_profit):
     final_tax_due = max(income_tax - tax_credits, 0)
     return final_tax_due, income_tax, taxable_income
 
-# 요약 함수
-def summarize_ledger(df):
-    summary = df.groupby("분류")["금액"].sum().reset_index()
-    summary.columns = ["항목", "총액"]
-    return summary
-
 # 세금 계산기
 def calculate_tax(df):
     total_income = df[df['분류'] == '매출']['금액'].sum()
@@ -87,40 +80,6 @@ def calculate_tax(df):
     income_tax_base = max((total_income - total_expense - 1500000), 0)
     income_tax_estimate = income_tax_base * 0.06
     return int(vat_estimate), int(income_tax_estimate)
-
-# PDF 저장 함수
-def save_summary_to_pdf(summary, vat, income_tax, feedback, adjusted_df, final_tax_due):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt="장부 요약 리포트", ln=True, align='C')
-
-    # 장부 요약 출력
-    pdf.ln(5)
-    for _, row in summary.iterrows():
-        pdf.cell(200, 10, txt=f"- {row['항목']}: {int(row['총액']):,}원", ln=True)
-
-    pdf.ln(5)
-    pdf.cell(200, 10, txt=f"📌 예상 부가세: 약 {vat:,}원", ln=True)
-    pdf.cell(200, 10, txt=f"💰 예상 종합소득세: 약 {income_tax:,}원", ln=True)
-
-    # 피드백 및 세무 조정 내용 출력
-    pdf.ln(5)
-    pdf.multi_cell(0, 10, txt="GPT 세무사 피드백:\n" + feedback)
-
-    # 수정된 장부 내용 출력
-    pdf.ln(5)
-    pdf.cell(200, 10, txt="📑 세무 조정 후 장부 내용", ln=True, align='C')
-    for _, row in adjusted_df.iterrows():
-        pdf.cell(200, 10, txt=f"- {row['항목']}: {int(row['금액']):,}원", ln=True)
-
-    # 최종 납부 세액 출력
-    pdf.ln(5)
-    pdf.cell(200, 10, txt=f"최종 납부 세액: {final_tax_due:,}원", ln=True)
-
-    filepath = "세무_요약_리포트.pdf"
-    pdf.output(filepath)
-    return filepath
 
 # Streamlit 실행
 st.title("광운대 22학번 학부연구생 백준현 프로젝트 세무사봇")
@@ -156,7 +115,7 @@ if uploaded_file:
 
     # GPT 피드백
     gpt_summary_prompt = "다음은 자영업자의 장부 요약입니다:\n"
-    summary = summarize_ledger(adjusted_df)
+    summary = df.groupby("분류")["금액"].sum().reset_index()
     for _, row in summary.iterrows():
         gpt_summary_prompt += f"- {row['항목']}: {int(row['총액']):,}원\n"
     gpt_feedback = client.chat.completions.create(
@@ -186,8 +145,3 @@ if uploaded_file:
 
         st.subheader("💬 질문에 대한 답변")
         st.write(followup_response.choices[0].message.content.strip())
-
-    # PDF 리포트 다운로드 링크 제공
-    if st.button('세무 리포트 다운로드'):
-        pdf_filepath = save_summary_to_pdf(summary, vat, income_tax, gpt_feedback, adjusted_df, final_tax_due)
-        st.download_button(label="다운로드", data=open(pdf_filepath, "rb"), file_name="세무_요약_리포트.pdf")
