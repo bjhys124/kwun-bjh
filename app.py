@@ -80,6 +80,12 @@ def apply_tax_relief(adjusted_df, adjusted_profit):
     final_tax_due = max(taxable_income * 0.24 - 5220000 - tax_credits, 0)  # 24% 세율 예시
     return final_tax_due
 
+# 요약 함수
+def summarize_ledger(df):
+    summary = df.groupby("분류")["금액"].sum().reset_index()
+    summary.columns = ["항목", "총액"]
+    return summary
+
 # Streamlit 실행
 st.title("광운대 22학번 학부연구생 백준현 프로젝트 세무사봇")
 
