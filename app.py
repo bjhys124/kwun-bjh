@@ -89,7 +89,9 @@ def apply_tax_relief(df, adjusted_profit):
 
 # 소수점 제거 함수 (내림 처리)
 def remove_decimal(value):
-    return math.floor(value)
+    if value is None or isinstance(value, (int, float)) == False:  # 값이 None이거나 유효한 숫자가 아닐 경우
+        return 0  # 값이 없으면 0 반환
+    return math.floor(value)  # 값이 있으면 내림 처리하여 반환
 
 # Streamlit 실행
 st.title("광운대 22학번 학부연구생 백준현 프로젝트 세무사봇")
