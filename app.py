@@ -5,6 +5,7 @@ from io import StringIO
 from dotenv import load_dotenv
 from openai import OpenAI
 from datetime import datetime
+import math
 
 # 환경 변수 로드
 dotenv_path = ".env"
@@ -70,7 +71,13 @@ def calculate_tax_with_adjustments(df, adjusted_profit):
     
     # 최종 납부 세액 계산
     final_tax_due = max(income_tax - tax_credits, 0)
-    return final_tax_due, income_tax, taxable_income
+    return final_tax_due
+
+# 요약 함수
+def summarize_ledger(df):
+    summary = df.groupby("분류")["금액"].sum().reset_index()
+    summary.columns = ["항목", "총액"]
+    return summary
 
 # 세금 계산기
 def calculate_tax(df):
@@ -80,6 +87,10 @@ def calculate_tax(df):
     income_tax_base = max((total_income - total_expense - 1500000), 0)
     income_tax_estimate = income_tax_base * 0.06
     return int(vat_estimate), int(income_tax_estimate)
+
+# 소수점 제거 함수 (내림 처리)
+def remove_decimal(value):
+    return math.floor(value)
 
 # Streamlit 실행
 st.title("광운대 22학번 학부연구생 백준현 프로젝트 세무사봇")
@@ -94,12 +105,12 @@ if uploaded_file:
     # 매출 순수익 계산
     net_profit = calculate_net_profit(df)
     st.subheader("💰 매출 순수익 (비용 제외):")
-    st.write(f"순수익: {net_profit:,}원")
+    st.write(f"순수익: {remove_decimal(net_profit):,}원")  # 소수점 제거 후 출력
 
     # 세무 조정
     adjusted_profit, adjustments, adjusted_df = tax_adjustment(df)
     st.subheader("🧾 세무 조정 후 순수익:")
-    st.write(f"조정된 순수익: {adjusted_profit:,}원")
+    st.write(f"조정된 순수익: {remove_decimal(adjusted_profit):,}원")  # 소수점 제거 후 출력
     
     # 세무 조정 항목 표시
     if adjustments:
@@ -108,10 +119,10 @@ if uploaded_file:
             st.write(adjustment)
     
     # 최종 납부 세액 계산
-    final_tax_due, income_tax, taxable_income = calculate_tax_with_adjustments(df, adjusted_profit)
+    final_tax_due = calculate_tax_with_adjustments(df, adjusted_profit)
 
     st.subheader("📊 세금 요약")
-    st.write(f"📌 최종 납부 세액: 약 {final_tax_due:,}원")
+    st.write(f"📌 최종 납부 세액: 약 {remove_decimal(final_tax_due):,}원")  # 소수점 제거 후 출력
 
     # GPT 피드백
     gpt_summary_prompt = "다음은 자영업자의 장부 요약입니다:\n"
