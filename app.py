@@ -3,7 +3,6 @@ import pandas as pd
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
-from datetime import datetime
 import math
 
 # 환경 변수 로드
@@ -46,15 +45,19 @@ def tax_adjustment(df):
     adjusted_profit = calculate_net_profit(df)
     return adjusted_profit, adjustments, df  # 세무 조정된 장부 반환
 
-# 세액 계산기 (소득공제 및 조세특례제도 적용)
-def calculate_tax_with_adjustments(df, adjusted_profit):
-    # 기본 공제액 예시 (이 부분은 실제 값에 맞게 설정 필요)
+# 소득공제 및 세액 공제 적용 (조세특례제도)
+def apply_tax_relief(df, adjusted_profit):
+    # 예시 공제 항목들 (기본공제, 자녀 세액 공제 등)
     basic_deduction = 1500000  # 기본공제 (1,500,000원)
     
-    # 예시 소득공제 항목 추가 (의료비, 연금보험료 등)
-    medical_deduction = 0  # 의료비 공제 (예시)
-    pension_deduction = 0  # 연금보험료 공제 (예시)
-    children_deduction = 0  # 자녀 세액 공제 (예시)
+    # 의료비 공제
+    medical_deduction = 1000000  # 예시 값 (실제 지출 금액에 따라 다름)
+    
+    # 자녀 세액 공제
+    children_deduction = 0  # 자녀 수에 따라 달라짐
+    
+    # 연금보험료 공제
+    pension_deduction = 500000  # 예시 값
     
     # 총 소득공제 금액 계산
     total_deductions = basic_deduction + medical_deduction + pension_deduction + children_deduction
@@ -62,7 +65,7 @@ def calculate_tax_with_adjustments(df, adjusted_profit):
     # 과세표준 계산
     taxable_income = max(adjusted_profit - total_deductions, 0)
     
-    # 과세표준에 따른 소득세율 적용 (단순화된 예시)
+    # 세액 계산 (과세표준에 따른 소득세율 적용)
     if taxable_income <= 12000000:
         income_tax = taxable_income * 0.06
     elif taxable_income <= 46000000:
@@ -75,15 +78,9 @@ def calculate_tax_with_adjustments(df, adjusted_profit):
     
     # 최종 납부 세액 계산
     final_tax_due = max(income_tax - tax_credits, 0)
-    return final_tax_due
+    return final_tax_due, total_deductions
 
-# 요약 함수
-def summarize_ledger(df):
-    summary = df.groupby("분류")["금액"].sum().reset_index()
-    summary.columns = ["항목", "총액"]  # 컬럼 이름을 명확히 지정
-    return summary
-
-# 세금 계산기
+# 세액 계산기
 def calculate_tax(df):
     total_income = df[df['분류'] == '매출']['금액'].sum()
     total_expense = df[df['분류'] != '매출']['금액'].sum()
@@ -129,7 +126,7 @@ if uploaded_file:
 
     # 세액 계산 (인적 공제 적용 후)
     adjusted_profit, adjustments, adjusted_df = tax_adjustment(df)
-    final_tax_due = calculate_tax_with_adjustments(adjusted_df, adjusted_profit)
+    final_tax_due = apply_tax_relief(adjusted_df, adjusted_profit)
     
     # 세금 재계산
     final_tax_due_with_deductions = final_tax_due - (children_deduction + parent_deduction)
