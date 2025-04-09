@@ -76,7 +76,7 @@ def calculate_tax_with_adjustments(df, adjusted_profit):
     
     # 최종 납부 세액 계산
     final_tax_due = max(income_tax - tax_credits, 0)
-    return final_tax_due
+    return final_tax_due, income_tax, taxable_income, total_deductions
 
 # 요약 함수
 def summarize_ledger(df):
@@ -145,6 +145,12 @@ if uploaded_file:
     summary = summarize_ledger(adjusted_df)  # 요약 함수에서 컬럼 이름을 명확히 지정
     for _, row in summary.iterrows():
         gpt_summary_prompt += f"- {row['항목']}: {int(row['총액']):,}원\n"  # 총액에 접근할 때 정확한 컬럼 이름 사용
+
+    # 소득공제 반영된 세금 피드백
+    gpt_summary_prompt += f"\n📌 예상 부가세: 약 {remove_decimal(vat):,}원\n"
+    gpt_summary_prompt += f"💰 예상 종합소득세: 약 {remove_decimal(income_tax):,}원\n"
+    gpt_summary_prompt += f"\n💸 최종 납부 세액: 약 {remove_decimal(final_tax_due_with_deductions):,}원"
+
     gpt_feedback = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[ 
