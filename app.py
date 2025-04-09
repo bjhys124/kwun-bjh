@@ -189,5 +189,5 @@ if uploaded_file:
 
     # PDF 리포트 다운로드 링크 제공
     if st.button('세무 리포트 다운로드'):
-        pdf_filepath = save_summary_to_pdf(summary, final_tax_due, gpt_feedback, adjusted_df, final_tax_due)
+        pdf_filepath = save_summary_to_pdf(summary, vat, income_tax, gpt_feedback, adjusted_df, final_tax_due)
         st.download_button(label="다운로드", data=open(pdf_filepath, "rb"), file_name="세무_요약_리포트.pdf")
