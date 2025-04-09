@@ -52,11 +52,16 @@ def calculate_tax_with_adjustments(df, adjusted_profit):
     # 기본 공제액 예시 (이 부분은 실제 값에 맞게 설정 필요)
     basic_deduction = 1500000  # 기본공제 (1,500,000원)
     
-    # 예시 소득공제 (의료비, 연금보험료 등 추가)
-    additional_deductions = 0  # 다른 소득공제 항목이 있다면 이 부분에 추가
+    # 예시 소득공제 항목 추가 (의료비, 연금보험료 등)
+    medical_deduction = 0  # 의료비 공제 (예시)
+    pension_deduction = 0  # 연금보험료 공제 (예시)
+    children_deduction = 0  # 자녀 세액 공제 (예시)
+    
+    # 총 소득공제 금액 계산
+    total_deductions = basic_deduction + medical_deduction + pension_deduction + children_deduction
     
     # 과세표준 계산
-    taxable_income = max(adjusted_profit - basic_deduction - additional_deductions, 0)
+    taxable_income = max(adjusted_profit - total_deductions, 0)
     
     # 과세표준에 따른 소득세율 적용 (단순화된 예시)
     if taxable_income <= 12000000:
@@ -71,7 +76,7 @@ def calculate_tax_with_adjustments(df, adjusted_profit):
     
     # 최종 납부 세액 계산
     final_tax_due = max(income_tax - tax_credits, 0)
-    return final_tax_due
+    return final_tax_due, income_tax, taxable_income, total_deductions
 
 # 요약 함수
 def summarize_ledger(df):
@@ -119,10 +124,11 @@ if uploaded_file:
             st.write(adjustment)
     
     # 최종 납부 세액 계산
-    final_tax_due = calculate_tax_with_adjustments(df, adjusted_profit)
+    final_tax_due, income_tax, taxable_income, total_deductions = calculate_tax_with_adjustments(df, adjusted_profit)
 
     st.subheader("📊 세금 요약")
     st.write(f"📌 최종 납부 세액: 약 {remove_decimal(final_tax_due):,}원")  # 소수점 제거 후 출력
+    st.write(f"📝 총 소득공제: 약 {remove_decimal(total_deductions):,}원")
 
     # GPT 피드백
     gpt_summary_prompt = "다음은 자영업자의 장부 요약입니다:\n"
