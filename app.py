@@ -31,22 +31,6 @@ def calculate_net_profit(df):
     net_profit = total_income - total_expense  # 순수익 = 매출 - 비용
     return net_profit
 
-# 세무 조정 (세법에 따른 조정)
-def tax_adjustment(df):
-    adjustments = []  # 세무 조정 항목 저장
-    
-    # 예시: '법인세 조정' - 세법상 불인정 비용을 제외
-    # 예시로 '경조사비'는 세법상 인정되지 않으므로 제외
-    non_deductible_expenses = df[df['분류'] == '경조사비']['금액'].sum()
-    if non_deductible_expenses > 0:
-        adjustments.append(f"경조사비: {non_deductible_expenses:,}원을 세법상 불인정 비용으로 조정하여 제외했습니다.")
-        # 경조사비를 순수익에서 제외
-        df = df[df['분류'] != '경조사비']
-    
-    # 세무 조정된 순수익 계산
-    adjusted_profit = calculate_net_profit(df)
-    return adjusted_profit, adjustments, df  # 세무 조정된 장부 반환
-
 # 세액 계산기 (소득공제 및 조세특례제도 적용)
 def calculate_tax_with_adjustments(df, adjusted_profit):
     # 기본 공제액 예시 (이 부분은 실제 값에 맞게 설정 필요)
@@ -76,7 +60,7 @@ def calculate_tax_with_adjustments(df, adjusted_profit):
     
     # 최종 납부 세액 계산
     final_tax_due = max(income_tax - tax_credits, 0)
-    return final_tax_due, income_tax, taxable_income, total_deductions
+    return final_tax_due
 
 # 요약 함수
 def summarize_ledger(df):
@@ -102,6 +86,7 @@ st.title("광운대 22학번 학부연구생 백준현 프로젝트 세무사봇
 
 uploaded_file = st.file_uploader("장부 파일을 업로드하세요 (.txt)", type="txt")
 question = st.text_input("세무 관련 질문을 입력하세요 (예: 이번 달 지출은 적절한가요?)")
+
 if uploaded_file:
     df = parse_text_to_dataframe(uploaded_file)
     st.subheader("📋 원본 장부 데이터")
@@ -112,23 +97,32 @@ if uploaded_file:
     st.subheader("💰 매출 순수익 (비용 제외):")
     st.write(f"순수익: {remove_decimal(net_profit):,}원")  # 소수점 제거 후 출력
 
-    # 세무 조정
-    adjusted_profit, adjustments, adjusted_df = tax_adjustment(df)
-    st.subheader("🧾 세무 조정 후 순수익:")
-    st.write(f"조정된 순수익: {remove_decimal(adjusted_profit):,}원")  # 소수점 제거 후 출력
-    
-    # 세무 조정 항목 표시
-    if adjustments:
-        st.subheader("⚖️ 세무 조정 항목")
-        for adjustment in adjustments:
-            st.write(adjustment)
-    
-    # 최종 납부 세액 계산
-    final_tax_due, income_tax, taxable_income, total_deductions = calculate_tax_with_adjustments(df, adjusted_profit)
+    # 세액 계산 (기본 세금 신고액 제시)
+    vat, income_tax = calculate_tax(df)
+    st.subheader("📊 세금 계산")
+    st.write(f"📌 예상 부가세: 약 {remove_decimal(vat):,}원")
+    st.write(f"💰 예상 종합소득세: 약 {remove_decimal(income_tax):,}원")
 
-    st.subheader("📊 세금 요약")
-    st.write(f"📌 최종 납부 세액: 약 {remove_decimal(final_tax_due):,}원")  # 소수점 제거 후 출력
-    st.write(f"📝 총 소득공제: 약 {remove_decimal(total_deductions):,}원")
+    # 개인정보 (인적 공제 항목) 묻기
+    st.subheader("👨‍👩‍👧‍👦 개인정보 입력")
+    num_children = st.number_input("자녀 수를 입력하세요.", min_value=0, max_value=10, step=1)
+    parent_age = st.number_input("부모님 중 60세 이상의 분 수를 입력하세요.", min_value=0, max_value=10, step=1)
+
+    # 입력된 인적 공제 항목 반영
+    children_deduction = num_children * 1500000  # 자녀 세액 공제 (예시: 150만 원씩)
+    parent_deduction = parent_age * 1000000  # 부모님 공제 (예시: 100만 원씩)
+
+    # 세액 계산 (인적 공제 적용 후)
+    adjusted_profit, adjustments, adjusted_df = tax_adjustment(df)
+    final_tax_due = calculate_tax_with_adjustments(adjusted_df, adjusted_profit)
+    
+    # 세금 재계산
+    final_tax_due_with_deductions = final_tax_due - (children_deduction + parent_deduction)
+    final_tax_due_with_deductions = max(final_tax_due_with_deductions, 0)  # 세액이 음수가 되지 않도록 처리
+
+    # 결과 출력
+    st.subheader("📊 최종 납부 세액")
+    st.write(f"최종 납부 세액: 약 {remove_decimal(final_tax_due_with_deductions):,}원")
 
     # GPT 피드백
     gpt_summary_prompt = "다음은 자영업자의 장부 요약입니다:\n"
