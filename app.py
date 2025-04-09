@@ -47,6 +47,32 @@ def tax_adjustment(df):
     adjusted_profit = calculate_net_profit(df)
     return adjusted_profit, adjustments, df  # 세무 조정된 장부 반환
 
+# 세액 계산기 (소득공제 및 조세특례제도 적용)
+def calculate_tax_with_adjustments(df, adjusted_profit):
+    # 기본 공제액 예시 (이 부분은 실제 값에 맞게 설정 필요)
+    basic_deduction = 1500000  # 기본공제 (1,500,000원)
+    
+    # 예시 소득공제 (의료비, 연금보험료 등 추가)
+    additional_deductions = 0  # 다른 소득공제 항목이 있다면 이 부분에 추가
+    
+    # 과세표준 계산
+    taxable_income = max(adjusted_profit - basic_deduction - additional_deductions, 0)
+    
+    # 과세표준에 따른 소득세율 적용 (단순화된 예시)
+    if taxable_income <= 12000000:
+        income_tax = taxable_income * 0.06
+    elif taxable_income <= 46000000:
+        income_tax = taxable_income * 0.15 - 1080000
+    else:
+        income_tax = taxable_income * 0.24 - 5220000
+    
+    # 세액 공제 (예: 자녀 세액 공제)
+    tax_credits = 0  # 자녀 세액 공제 등 추가
+    
+    # 최종 납부 세액 계산
+    final_tax_due = max(income_tax - tax_credits, 0)
+    return final_tax_due
+
 # 요약 함수
 def summarize_ledger(df):
     summary = df.groupby("분류")["금액"].sum().reset_index()
@@ -63,7 +89,7 @@ def calculate_tax(df):
     return int(vat_estimate), int(income_tax_estimate)
 
 # PDF 저장 함수
-def save_summary_to_pdf(summary, vat, income_tax, feedback, adjusted_df):
+def save_summary_to_pdf(summary, vat, income_tax, feedback, adjusted_df, final_tax_due):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
@@ -87,6 +113,10 @@ def save_summary_to_pdf(summary, vat, income_tax, feedback, adjusted_df):
     pdf.cell(200, 10, txt="📑 세무 조정 후 장부 내용", ln=True, align='C')
     for _, row in adjusted_df.iterrows():
         pdf.cell(200, 10, txt=f"- {row['항목']}: {int(row['금액']):,}원", ln=True)
+
+    # 최종 납부 세액 출력
+    pdf.ln(5)
+    pdf.cell(200, 10, txt=f"최종 납부 세액: {final_tax_due:,}원", ln=True)
 
     filepath = "세무_요약_리포트.pdf"
     pdf.output(filepath)
@@ -118,20 +148,17 @@ if uploaded_file:
         for adjustment in adjustments:
             st.write(adjustment)
     
-    # 세금 계산
-    vat, income_tax = calculate_tax(adjusted_df)
+    # 최종 납부 세액 계산
+    final_tax_due = calculate_tax_with_adjustments(df, adjusted_profit)
 
     st.subheader("📊 세금 요약")
-    st.write(f"📌 예상 부가세: 약 {vat:,}원")
-    st.write(f"💰 예상 종합소득세: 약 {income_tax:,}원")
+    st.write(f"📌 최종 납부 세액: 약 {final_tax_due:,}원")
 
     # GPT 피드백
     gpt_summary_prompt = "다음은 자영업자의 장부 요약입니다:\n"
     summary = summarize_ledger(adjusted_df)
     for _, row in summary.iterrows():
         gpt_summary_prompt += f"- {row['항목']}: {int(row['총액']):,}원\n"
-    gpt_summary_prompt += f"\n예상 부가세: 약 {vat:,}원\n"
-    gpt_summary_prompt += f"예상 종합소득세: 약 {income_tax:,}원"
     gpt_feedback = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[ 
@@ -162,5 +189,5 @@ if uploaded_file:
 
     # PDF 리포트 다운로드 링크 제공
     if st.button('세무 리포트 다운로드'):
-        pdf_filepath = save_summary_to_pdf(summary, vat, income_tax, gpt_feedback, adjusted_df)
+        pdf_filepath = save_summary_to_pdf(summary, final_tax_due, gpt_feedback, adjusted_df, final_tax_due)
         st.download_button(label="다운로드", data=open(pdf_filepath, "rb"), file_name="세무_요약_리포트.pdf")
