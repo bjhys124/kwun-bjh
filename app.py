@@ -71,7 +71,7 @@ def calculate_tax_with_adjustments(df, adjusted_profit):
     
     # 최종 납부 세액 계산
     final_tax_due = max(income_tax - tax_credits, 0)
-    return final_tax_due
+    return final_tax_due, income_tax, taxable_income
 
 # 요약 함수
 def summarize_ledger(df):
@@ -149,7 +149,7 @@ if uploaded_file:
             st.write(adjustment)
     
     # 최종 납부 세액 계산
-    final_tax_due = calculate_tax_with_adjustments(df, adjusted_profit)
+    final_tax_due, income_tax, taxable_income = calculate_tax_with_adjustments(df, adjusted_profit)
 
     st.subheader("📊 세금 요약")
     st.write(f"📌 최종 납부 세액: 약 {final_tax_due:,}원")
@@ -189,5 +189,5 @@ if uploaded_file:
 
     # PDF 리포트 다운로드 링크 제공
     if st.button('세무 리포트 다운로드'):
-        pdf_filepath = save_summary_to_pdf(summary, vat, income_tax, gpt_feedback, adjusted_df, final_tax_due)
+        pdf_filepath = save_summary_to_pdf(summary, income_tax, vat, gpt_feedback, adjusted_df, final_tax_due)
         st.download_button(label="다운로드", data=open(pdf_filepath, "rb"), file_name="세무_요약_리포트.pdf")
