@@ -31,6 +31,22 @@ def calculate_net_profit(df):
     net_profit = total_income - total_expense  # 순수익 = 매출 - 비용
     return net_profit
 
+# 세무 조정 (세법에 따른 조정)
+def tax_adjustment(df):
+    adjustments = []  # 세무 조정 항목 저장
+    
+    # 예시: '법인세 조정' - 세법상 불인정 비용을 제외
+    # 예시로 '경조사비'는 세법상 인정되지 않으므로 제외
+    non_deductible_expenses = df[df['분류'] == '경조사비']['금액'].sum()
+    if non_deductible_expenses > 0:
+        adjustments.append(f"경조사비: {non_deductible_expenses:,}원을 세법상 불인정 비용으로 조정하여 제외했습니다.")
+        # 경조사비를 순수익에서 제외
+        df = df[df['분류'] != '경조사비']
+    
+    # 세무 조정된 순수익 계산
+    adjusted_profit = calculate_net_profit(df)
+    return adjusted_profit, adjustments, df  # 세무 조정된 장부 반환
+
 # 세액 계산기 (소득공제 및 조세특례제도 적용)
 def calculate_tax_with_adjustments(df, adjusted_profit):
     # 기본 공제액 예시 (이 부분은 실제 값에 맞게 설정 필요)
