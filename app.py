@@ -100,18 +100,18 @@ question = st.text_input("세무 관련 질문을 입력하세요 (예: 이번 �
 if uploaded_file:
     df = parse_text_to_dataframe(uploaded_file)
     st.subheader("📋 원본 장부 데이터")
-    st.dataframe(df)
     
-    # 매출 순수익 계산
-    net_profit = calculate_net_profit(df)
-    st.subheader("💰 매출 순수익 (비용 제외):")
-    st.write(f"순수익: {remove_decimal(net_profit):,}원")  # 소수점 제거 후 출력
-
-    # 세액 계산 (기본 세금 신고액 제시)
-    vat, income_tax = calculate_tax(df)
-    st.subheader("📊 세금 계산")
-    st.write(f"📌 예상 부가세: 약 {remove_decimal(vat):,}원")
-    st.write(f"💰 예상 종합소득세: 약 {remove_decimal(income_tax):,}원")
+    # df 내용 출력 (디버깅용)
+    st.write(df)  # 데이터가 제대로 로드됐는지 확인
+    
+    # 데이터 유효성 체크
+    try:
+        vat, income_tax = calculate_tax(df)
+        st.subheader("📊 세금 계산")
+        st.write(f"📌 예상 부가세: 약 {remove_decimal(vat):,}원")
+        st.write(f"💰 예상 종합소득세: 약 {remove_decimal(income_tax):,}원")
+    except Exception as e:
+        st.error(f"세금 계산 중 오류 발생: {str(e)}")
 
     # 개인정보 (인적 공제 항목) 묻기
     st.subheader("👨‍👩‍👧‍👦 개인정보 입력")
