@@ -34,38 +34,27 @@ def tax_adjustment(df):
     adjustments = []  # 세무 조정 항목 저장
     
     # 예시: '법인세 조정' - 세법상 불인정 비용을 제외
-    # 예시로 '경조사비'는 세법상 인정되지 않으므로 제외
     non_deductible_expenses = df[df['분류'] == '경조사비']['금액'].sum()
     if non_deductible_expenses > 0:
         adjustments.append(f"경조사비: {non_deductible_expenses:,}원을 세법상 불인정 비용으로 조정하여 제외했습니다.")
-        # 경조사비를 순수익에서 제외
         df = df[df['분류'] != '경조사비']
     
-    # 세무 조정된 순수익 계산
     adjusted_profit = calculate_net_profit(df)
     return adjusted_profit, adjustments, df  # 세무 조정된 장부 반환
 
-# 소득공제 및 세액 공제 적용 (조세특례제도)
-def apply_tax_relief(df, adjusted_profit):
-    # 예시 공제 항목들 (기본공제, 자녀 세액 공제 등)
+# 세액 계산기 (소득공제 및 조세특례제도 적용)
+def calculate_tax_with_adjustments(df, adjusted_profit):
     basic_deduction = 1500000  # 기본공제 (1,500,000원)
-    
-    # 의료비 공제
-    medical_deduction = 1000000  # 예시 값 (실제 지출 금액에 따라 다름)
-    
-    # 자녀 세액 공제
-    children_deduction = 0  # 자녀 수에 따라 달라짐
-    
-    # 연금보험료 공제
-    pension_deduction = 500000  # 예시 값
+    medical_deduction = 1000000  # 의료비 공제 (예시 값)
+    pension_deduction = 500000  # 연금보험료 공제 (예시 값)
+    children_deduction = 0  # 자녀 세액 공제 (예시 값)
     
     # 총 소득공제 금액 계산
     total_deductions = basic_deduction + medical_deduction + pension_deduction + children_deduction
     
-    # 과세표준 계산
-    taxable_income = max(adjusted_profit - total_deductions, 0)
+    taxable_income = max(adjusted_profit - total_deductions, 0)  # 과세표준
     
-    # 세액 계산 (과세표준에 따른 소득세율 적용)
+    # 과세표준에 따른 소득세율 적용 (단순화된 예시)
     if taxable_income <= 12000000:
         income_tax = taxable_income * 0.06
     elif taxable_income <= 46000000:
@@ -78,16 +67,25 @@ def apply_tax_relief(df, adjusted_profit):
     
     # 최종 납부 세액 계산
     final_tax_due = max(income_tax - tax_credits, 0)
-    return final_tax_due, total_deductions
+    return final_tax_due
 
-# 세액 계산기
-def calculate_tax(df):
-    total_income = df[df['분류'] == '매출']['금액'].sum()
-    total_expense = df[df['분류'] != '매출']['금액'].sum()
-    vat_estimate = max((total_income - total_expense) * 0.1, 0)
-    income_tax_base = max((total_income - total_expense - 1500000), 0)
-    income_tax_estimate = income_tax_base * 0.06
-    return int(vat_estimate), int(income_tax_estimate)
+# 세액 최적화 (세액 공제 및 조정)
+def apply_tax_relief(df, adjusted_profit):
+    basic_deduction = 1500000  # 기본공제
+    medical_deduction = 1000000  # 의료비 공제 (예시 값)
+    pension_deduction = 500000  # 연금보험료 공제 (예시 값)
+    children_deduction = 0  # 자녀 세액 공제 (예시 값)
+    
+    # 총 소득공제 금액 계산
+    total_deductions = basic_deduction + medical_deduction + pension_deduction + children_deduction
+    taxable_income = max(adjusted_profit - total_deductions, 0)
+    
+    # 세액 공제 (자녀 세액 공제 등)
+    tax_credits = 0  # 자녀 세액 공제 등 추가
+    
+    # 최종 납부 세액 계산
+    final_tax_due = max(taxable_income * 0.24 - 5220000 - tax_credits, 0)  # 24% 세율 예시
+    return final_tax_due
 
 # 소수점 제거 함수 (내림 처리)
 def remove_decimal(value):
@@ -142,7 +140,6 @@ if uploaded_file:
     for _, row in summary.iterrows():
         gpt_summary_prompt += f"- {row['항목']}: {int(row['총액']):,}원\n"  # 총액에 접근할 때 정확한 컬럼 이름 사용
 
-    # 소득공제 반영된 세금 피드백
     gpt_summary_prompt += f"\n📌 예상 부가세: 약 {remove_decimal(vat):,}원\n"
     gpt_summary_prompt += f"💰 예상 종합소득세: 약 {remove_decimal(income_tax):,}원\n"
     gpt_summary_prompt += f"\n💸 최종 납부 세액: 약 {remove_decimal(final_tax_due_with_deductions):,}원"
