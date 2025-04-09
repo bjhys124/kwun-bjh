@@ -76,7 +76,7 @@ def calculate_tax_with_adjustments(df, adjusted_profit):
 # 요약 함수
 def summarize_ledger(df):
     summary = df.groupby("분류")["금액"].sum().reset_index()
-    summary.columns = ["항목", "총액"]
+    summary.columns = ["항목", "총액"]  # 컬럼 이름을 명확히 지정
     return summary
 
 # 세금 계산기
@@ -126,9 +126,9 @@ if uploaded_file:
 
     # GPT 피드백
     gpt_summary_prompt = "다음은 자영업자의 장부 요약입니다:\n"
-    summary = df.groupby("분류")["금액"].sum().reset_index()
+    summary = summarize_ledger(adjusted_df)  # 요약 함수에서 컬럼 이름을 명확히 지정
     for _, row in summary.iterrows():
-        gpt_summary_prompt += f"- {row['항목']}: {int(row['총액']):,}원\n"
+        gpt_summary_prompt += f"- {row['항목']}: {int(row['총액']):,}원\n"  # 총액에 접근할 때 정확한 컬럼 이름 사용
     gpt_feedback = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[ 
