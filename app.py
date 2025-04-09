@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import os
-from io import StringIO
 from dotenv import load_dotenv
 from openai import OpenAI
 from datetime import datetime
@@ -76,7 +75,7 @@ def calculate_tax_with_adjustments(df, adjusted_profit):
     
     # 최종 납부 세액 계산
     final_tax_due = max(income_tax - tax_credits, 0)
-    return final_tax_due, income_tax, taxable_income, total_deductions
+    return final_tax_due
 
 # 요약 함수
 def summarize_ledger(df):
