@@ -69,24 +69,6 @@ def calculate_tax_with_adjustments(df, adjusted_profit):
     final_tax_due = max(income_tax - tax_credits, 0)
     return final_tax_due
 
-# 세액 최적화 (세액 공제 및 조정)
-def apply_tax_relief(df, adjusted_profit):
-    basic_deduction = 1500000  # 기본공제
-    medical_deduction = 1000000  # 의료비 공제 (예시 값)
-    pension_deduction = 500000  # 연금보험료 공제 (예시 값)
-    children_deduction = 0  # 자녀 세액 공제 (예시 값)
-    
-    # 총 소득공제 금액 계산
-    total_deductions = basic_deduction + medical_deduction + pension_deduction + children_deduction
-    taxable_income = max(adjusted_profit - total_deductions, 0)
-    
-    # 세액 공제 (자녀 세액 공제 등)
-    tax_credits = 0  # 자녀 세액 공제 등 추가
-    
-    # 최종 납부 세액 계산
-    final_tax_due = max(taxable_income * 0.24 - 5220000 - tax_credits, 0)  # 24% 세율 예시
-    return final_tax_due
-
 # 소수점 제거 함수 (내림 처리)
 def remove_decimal(value):
     if value is None or isinstance(value, (int, float)) == False:  # 값이 None이거나 유효한 숫자가 아닐 경우
@@ -126,6 +108,8 @@ if uploaded_file:
 
     # 세액 계산 (인적 공제 적용 후)
     adjusted_profit, adjustments, adjusted_df = tax_adjustment(df)
+    
+    # 세액 최적화 및 계산
     final_tax_due = apply_tax_relief(adjusted_df, adjusted_profit)
     
     # 세금 재계산
