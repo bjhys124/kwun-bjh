@@ -19,7 +19,14 @@ def parse_text_to_dataframe(uploaded_file):
         parts = [x.strip() for x in line.strip().split("|")]
         if len(parts) == 4:
             date, desc, amount, category = parts
-            data.append({"날짜": date, "내용": desc, "금액": int(amount), "분류": category})
+
+            # 금액 처리: 숫자가 아니면 0으로 처리
+            try:
+                amount = int(amount.replace(",", "").replace(" ", ""))  # 쉼표와 공백 제거 후 변환
+            except ValueError:
+                amount = 0  # 변환 실패 시 0으로 설정
+
+            data.append({"날짜": date, "내용": desc, "금액": amount, "분류": category})
     return pd.DataFrame(data)
 
 # 매출 순수익 계산 (비용 제외)
