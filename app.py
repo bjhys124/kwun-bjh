@@ -65,6 +65,18 @@ def calculate_tax(df):
     income_tax_estimate = income_tax_base * 0.06
     return vat_estimate, income_tax_estimate
 
+# 연간 추정 계산 함수 (부분 자료 보정)
+def extrapolate_annual_estimate(df):
+    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce')
+    existing_months = df['날짜'].dt.month.nunique()
+    if existing_months == 0:
+        return 0, 0
+    total_income = df[df['분류'] == '매출']['금액'].sum()
+    total_expense = df[df['분류'] != '매출']['금액'].sum()
+    annual_income = (total_income / existing_months) * 12
+    annual_expense = (total_expense / existing_months) * 12
+    return annual_income, annual_expense
+
 # 소수점 제거
 def remove_decimal(value):
     if value is None or not isinstance(value, (int, float)):
@@ -117,9 +129,16 @@ if uploaded_file:
     try:
         is_full_year = check_full_year_data(df)
         if not is_full_year:
-            st.warning("⚠️ 업로드된 데이터가 1년치가 아닙니다. 현재 출력되는 세금은 '예상치'일 수 있으며 실제 신고 시 정확하지 않을 수 있습니다.")
+            st.warning("⚠️ 업로드된 데이터가 1년치가 아닙니다. 현재 출력되는 세금은 '예상치'일 수 있으며 실제 신고 시 정확하지 않을 수 있습니다.\n\n아래 계산은 현재까지의 데이터를 바탕으로 연간 추정값을 적용한 결과입니다.")
+            estimated_income, estimated_expense = extrapolate_annual_estimate(df)
+            df_estimated = pd.DataFrame({
+                '분류': ['매출', '비용'],
+                '금액': [estimated_income, estimated_expense]
+            })
+            vat, income_tax = calculate_tax(df_estimated)
+        else:
+            vat, income_tax = calculate_tax(df)
 
-        vat, income_tax = calculate_tax(df)
         st.subheader("📊 세금 계산")
         st.write(f"📌 예상 부가세: 약 {remove_decimal(vat):,}원")
         st.write(f"💰 예상 종합소득세: 약 {remove_decimal(income_tax):,}원")
