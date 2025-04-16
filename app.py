@@ -34,6 +34,13 @@ def check_full_year_data(df):
     if dates.isnull().all():
         return False
 
+    month_list = dates.dt.to_period("M").drop_duplicates().sort_values()
+
+    for i in range(len(month_list) - 11):
+        if (month_list[i + 11] - month_list[i]).n == 11:
+            return True
+    return False
+
     dates = dates.sort_values()
     month_list = dates.dt.to_period("M").drop_duplicates()
 
