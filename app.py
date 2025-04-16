@@ -123,6 +123,8 @@ uploaded_file = st.file_uploader("장부 파일을 업로드하세요 (.txt)", t
 question = st.text_input("세무 관련 질문을 입력하세요 (예: 이번 달 지출은 적절한가요?)")
 
 if uploaded_file:
+    vat = 0
+    income_tax = 0
     df = parse_text_to_dataframe(uploaded_file)
     st.subheader("📋 원본 장부 데이터")
     st.write(df)
