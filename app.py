@@ -17,7 +17,13 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # 텍스트 파일 파싱 함수 (매출 및 비용 데이터)
 def parse_text_to_dataframe(uploaded_file):
     data = []
-    for line in uploaded_file.getvalue().decode("utf-8").splitlines():
+    lines = uploaded_file.getvalue().decode("utf-8").splitlines()
+
+    # ✅ 첫 줄이 헤더라면 제거
+    if lines and lines[0].startswith("날짜"):
+        lines = lines[1:]
+
+    for line in lines:
         parts = [x.strip() for x in line.strip().split("|")]
         if len(parts) == 4:
             date, desc, amount, category = parts
