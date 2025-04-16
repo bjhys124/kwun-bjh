@@ -38,10 +38,19 @@ def parse_text_to_dataframe(uploaded_file):
 def check_full_year_data(df):
     try:
         df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce')
-        month_list = df['날짜'].dt.to_period("M").drop_duplicates().sort_values()
+        month_list = df['날짜'].dt.to_period("M").dropna().drop_duplicates().sort_values()
 
         if len(month_list) < 12:
             return False
+
+        # 전체 월이 1개월 간격으로 연속적인지 검사
+        if all((month_list[i + 1].ordinal - month_list[i].ordinal) == 1 for i in range(len(month_list) - 1)):
+            return True
+
+        return False
+    except Exception as e:
+        st.error(f"📛 check_full_year_data 오류: {str(e)}")
+        return False
 
         for i in range(len(month_list) - 11):
             month_start = month_list[i]
