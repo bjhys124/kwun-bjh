@@ -41,18 +41,6 @@ def check_full_year_data(df):
             return True
     return False
 
-    dates = dates.sort_values()
-    month_list = dates.dt.to_period("M").drop_duplicates()
-
-    # 연속된 월이 12개월 이상이면 1년치로 간주
-    return len(month_list) >= 12
-    start_year = dates.min().year
-    end_year = dates.max().year
-    if start_year == end_year:
-        month_span = dates.dt.month.nunique()
-        return month_span >= 10
-    return False
-
 # 매출 순수익 계산
 def calculate_net_profit(df):
     total_income = df[df['분류'] == '매출']['금액'].sum()
