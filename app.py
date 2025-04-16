@@ -43,9 +43,11 @@ def check_full_year_data(df):
         if len(month_list) < 12:
             return False
 
-        # 전체 월이 1개월 간격으로 연속적인지 검사
-        if all((month_list[i + 1].ordinal - month_list[i].ordinal) == 1 for i in range(len(month_list) - 1)):
-            return True
+        for i in range(len(month_list) - 11):
+            month_start = month_list[i]
+            month_end = month_list[i + 11]
+            if month_end.ordinal - month_start.ordinal == 11:
+                return True
 
         return False
     except Exception as e:
