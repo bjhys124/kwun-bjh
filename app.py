@@ -33,7 +33,6 @@ def check_full_year_data(df):
     dates = pd.to_datetime(df["날짜"], errors="coerce")
     if dates.isnull().all():
         return False
-
     try:
         month_list = dates.dt.to_period("M").drop_duplicates().sort_values()
         for i in range(len(month_list) - 11):
@@ -45,15 +44,7 @@ def check_full_year_data(df):
         st.error(f"📛 check_full_year_data 오류: {str(e)}")
         return False
 
-    try:
-        month_list = dates.dt.to_period("M").drop_duplicates().sort_values()
-        for i in range(len(month_list) - 11):
-            if (month_list[i + 11] - month_list[i]).n == 11:
-                return True
-        return False
-    except Exception as e:
-        print("check_full_year_data 오류:", e)
-        return False
+
 
 # 매출 순수익 계산
 def calculate_net_profit(df):
