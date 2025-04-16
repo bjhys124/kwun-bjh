@@ -148,12 +148,12 @@ if uploaded_file:
             st.warning("⚠️ 업로드된 데이터가 1년치가 아닙니다. 현재 출력되는 세금은 '예상치'일 수 있으며 실제 신고 시 정확하지 않을 수 있습니다.\n\n아래 계산은 현재까지의 데이터를 바탕으로 연간 추정값을 적용한 결과입니다.")
             estimated_income, estimated_expense = extrapolate_annual_estimate(df)
             today = datetime.today().strftime("%Y-%m-%d")
-df_estimated = pd.DataFrame({
-    '날짜': [today, today],
-    '내용': ['연간 추정 매출', '연간 추정 비용'],
-    '금액': [estimated_income, estimated_expense],
-    '분류': ['매출', '기타비용']
-})
+            df_estimated = pd.DataFrame({
+                '날짜': [today, today],
+                '내용': ['연간 추정 매출', '연간 추정 비용'],
+                '금액': [estimated_income, estimated_expense],
+                '분류': ['매출', '기타비용']
+            })
             vat, income_tax = calculate_tax(df_estimated)
         else:
             vat, income_tax = calculate_tax(df)
