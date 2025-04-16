@@ -67,12 +67,16 @@ def tax_adjustment(df):
 
 # 세액 계산기
 def calculate_tax(df):
-    total_income = df[df['분류'] == '매출']['금액'].sum()
-    total_expense = df[df['분류'] != '매출']['금액'].sum()
-    vat_estimate = max((total_income - total_expense) * 0.1, 0)
-    income_tax_base = max((total_income - total_expense - 1500000), 0)
-    income_tax_estimate = income_tax_base * 0.06
-    return vat_estimate, income_tax_estimate
+    try:
+        df["금액"] = pd.to_numeric(df["금액"], errors="coerce").fillna(0)
+        total_income = df[df['분류'] == '매출']['금액'].sum()
+        total_expense = df[df['분류'] != '매출']['금액'].sum()
+        vat_estimate = max((total_income - total_expense) * 0.1, 0)
+        income_tax_base = max((total_income - total_expense - 1500000), 0)
+        income_tax_estimate = income_tax_base * 0.06
+        return vat_estimate, income_tax_estimate
+    except Exception as e:
+        raise ValueError(f"calculate_tax 오류: {str(e)}")
 
 # 연간 추정 계산 함수 (부분 자료 보정)
 def extrapolate_annual_estimate(df):
