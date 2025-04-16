@@ -30,9 +30,15 @@ def parse_text_to_dataframe(uploaded_file):
 
 # 1년치 여부 확인 함수
 def check_full_year_data(df):
-    dates = pd.to_datetime(df["날짜"], errors='coerce')
+    dates = pd.to_datetime(df["날짜"], errors="coerce")
     if dates.isnull().all():
         return False
+
+    dates = dates.sort_values()
+    month_list = dates.dt.to_period("M").drop_duplicates()
+
+    # 연속된 월이 12개월 이상이면 1년치로 간주
+    return len(month_list) >= 12
     start_year = dates.min().year
     end_year = dates.max().year
     if start_year == end_year:
