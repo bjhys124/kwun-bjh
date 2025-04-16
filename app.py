@@ -30,14 +30,17 @@ def parse_text_to_dataframe(uploaded_file):
 
 # 1년치 여부 확인 함수
 def check_full_year_data(df):
-    dates = pd.to_datetime(df["날짜"], errors="coerce")
-    if dates.isnull().all():
-        return False
     try:
-        month_list = dates.dt.to_period("M").drop_duplicates().sort_values()
+        df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce')
+        month_list = df['날짜'].dt.to_period("M").drop_duplicates().sort_values()
+
+        if len(month_list) < 12:
+            return False
+
         for i in range(len(month_list) - 11):
-            diff = (month_list[i + 11] - month_list[i]).n
-            if diff == 11:
+            month_start = month_list[i]
+            month_end = month_list[i + 11]
+            if month_end.ordinal - month_start.ordinal == 11:
                 return True
         return False
     except Exception as e:
