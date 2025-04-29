@@ -38,31 +38,26 @@ def parse_text_to_dataframe(uploaded_file):
 def check_full_year_data(df):
     try:
         df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce')
-        month_list = df['날짜'].dt.to_period("M").dropna().drop_duplicates().sort_values()
+        df = df.dropna(subset=['날짜'])  # 날짜 이상한 거 제거
+        months = df['날짜'].dt.to_period('M').drop_duplicates().sort_values()
 
-        if len(month_list) < 12:
+        if months.empty:
             return False
 
-        for i in range(len(month_list) - 11):
-            month_start = month_list[i]
-            month_end = month_list[i + 11]
-            if month_end.ordinal - month_start.ordinal == 11:
-                return True
+        start_month = months.min()
+        end_month = months.max()
+        num_months = len(months)
 
-        return False
+        # 시작과 끝 차이가 11개월이고, 총 12개 달이면 1년치 인정
+        if (end_month - start_month).n == 11 and num_months == 12:
+            return True
+        else:
+            return False
+
     except Exception as e:
         st.error(f"📛 check_full_year_data 오류: {str(e)}")
         return False
 
-        for i in range(len(month_list) - 11):
-            month_start = month_list[i]
-            month_end = month_list[i + 11]
-            if month_end.ordinal - month_start.ordinal == 11:
-                return True
-        return False
-    except Exception as e:
-        st.error(f"📛 check_full_year_data 오류: {str(e)}")
-        return False
 
 
 
